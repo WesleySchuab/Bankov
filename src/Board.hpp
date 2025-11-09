@@ -33,7 +33,7 @@ public:
     
     // Métodos de mercado
     /** Atualiza preços de mercado (pode ser noop dependendo da estratégia). */
-    void updateMarketPrices();
+    // (removido) updateMarketPrices was unused and has been removed to reduce confusion.
     /** Restaura preços ao valor base. */
     void resetMarketPrices();
     /**

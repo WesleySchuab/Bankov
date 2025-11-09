@@ -9,12 +9,12 @@ void Property::updatePrice(float percentage) {
     float variation = currentPrice * (percentage / 100.0f);
     currentPrice += variation;
     
-    // Garante que o preÁo nao fique negativo nem muito baixo
+    // Garante que o pre√ßo n√£o fique negativo nem muito baixo
     if (currentPrice < basePrice * 0.3f) {
         currentPrice = basePrice * 0.3f;
     }
     
-    // Limite m·ximo de 300% do preÁo base
+    // Limite m√°ximo de 300% do pre√ßo base
     if (currentPrice > basePrice * 3.0f) {
         currentPrice = basePrice * 3.0f;
     }
@@ -24,12 +24,12 @@ void Property::updateRent(float percentage) {
     float variation = currentRent * (percentage / 100.0f);
     currentRent += variation;
     
-    // Garante que o aluguel nao fique negativo
+    // Garante que o aluguel n√£o fique negativo
     if (currentRent < 1.0f) {
         currentRent = 1.0f;
     }
     
-    // Limite m·ximo de 300% do aluguel base
+    // Limite m√°ximo de 300% do aluguel base
     if (currentRent > baseRent * 3.0f) {
         currentRent = baseRent * 3.0f;
     }
