@@ -195,13 +195,6 @@ Event Board::getRandomEvent() const {
     return events[randomIndex];
 }
 
-void Board::updateMarketPrices() {
-    // Flutuações de mercado aleatórias desativadas para simplificar a jogabilidade.
-    // Os preços serão atualizados apenas via mudanças dirigidas pela SELIC
-    // (Board::applyMarketShift) e por eventos explícitos que chamam applyMarketShift.
-    // Esta função intencionalmente não faz nada agora.
-    (void)properties; // evita aviso de variável não usada
-}
 
 static bool isHighDYAsset(const std::shared_ptr<Property>& property) {
     // FIIs are considered high DY
