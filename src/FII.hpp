@@ -1,6 +1,5 @@
 #pragma once
 #include "Property.hpp"
-#include <string>
 
 /**
  * @brief Representa um fundo imobiliário (FII) no tabuleiro.

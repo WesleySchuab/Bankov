@@ -1,8 +1,6 @@
 #pragma once
 #include <string>
-
-// Forward declaration para evitar include circular
-class Player;
+#include "Player.hpp"
 
 /**
  * @brief Representa um evento aleatório que pode afetar um jogador ou o mercado.

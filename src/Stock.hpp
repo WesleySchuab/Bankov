@@ -1,6 +1,5 @@
 #pragma once
 #include "Property.hpp"
-#include <string>
 
 class Stock : public Property {
 private:
