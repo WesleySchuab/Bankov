@@ -1,15 +1,25 @@
-cmake_minimum_required(VERSION 3.10)
-project(AcoesImobiliarias LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.16)
+project(AcoesImobiliarias)
 
+# Forçar compilação C++
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(raylib REQUIRED) # espere que o sistema tenha raylib instalado / encontrado
+# Encontrar Raylib
+find_package(raylib REQUIRED)
 
-add_executable(AcoesImobiliarias
+# Adicionar executável com TODOS os arquivos
+add_executable(AcoesImobiliarias 
     src/main.cpp
-    src/Game.cpp
+    src/Player.cpp
 )
 
-target_include_directories(AcoesImobiliarias PRIVATE src)
-target_link_libraries(AcoesImobiliarias PRIVATE raylib)
+# Linkar com Raylib e biblioteca C++
+target_link_libraries(AcoesImobiliarias raylib stdc++)
+
+# Para Windows
+if(WIN32)
+    target_compile_options(AcoesImobiliarias PRIVATE -static)
+    target_link_libraries(AcoesImobiliarias -static)
+endif()

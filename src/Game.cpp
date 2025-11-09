@@ -1,9 +1,9 @@
 #include "Game.hpp"
 #include "raylib.h"
 
-Game::Game() {
-    // inicializa�ao da janela e recursos
-    InitWindow(800, 600, "AcoesImobiliarias - Esqueleto");
+Game::Game() { // implementação do construtor definido em Game.hpp
+    // inicialização da janela e recursos
+    InitWindow(800, 600, "BANKOV - Esqueleto");
     SetTargetFPS(60);
 }
 
@@ -26,7 +26,7 @@ void Game::handleInput() {
 }
 
 void Game::update() {
-    // l�gica por frame
+    // lógica por frame
 }
 
 void Game::render() {
