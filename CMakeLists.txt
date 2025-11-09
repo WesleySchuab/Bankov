@@ -12,7 +12,13 @@ find_package(raylib REQUIRED)
 # Adicionar executável com TODOS os arquivos
 add_executable(AcoesImobiliarias 
     src/main.cpp
+    src/Game.cpp
     src/Player.cpp
+    src/Board.cpp
+    src/Property.cpp
+    src/Stock.cpp
+    src/FII.cpp
+    src/Event.cpp
 )
 
 # Linkar com Raylib e biblioteca C++
