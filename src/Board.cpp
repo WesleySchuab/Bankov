@@ -36,7 +36,6 @@ void Board::initializeProperties() {
         "HGRU11", "CSHG Renda Urbana", 180.0f, 14.0f, (Color){155, 89, 182, 255}
     ));
     
-    // Adicionar mais ações para aumentar o número de ativos
     properties.push_back(std::make_shared<Stock>("ITUB4", "Itaú Unibanco", 120.0f, 7.0f, (Color){46, 204, 113, 255}));
     properties.push_back(std::make_shared<Stock>("ABEV3", "Ambev", 80.0f, 3.0f, (Color){241, 196, 15, 255}));
     properties.push_back(std::make_shared<Stock>("BBDC4", "Bradesco", 110.0f, 6.5f, (Color){231, 76, 60, 255}));
@@ -52,80 +51,44 @@ void Board::initializeProperties() {
     properties.push_back(std::make_shared<Stock>("AZUL4", "Azul Linhas Aereas", 68.0f, 2.9f, (Color){231, 76, 60, 255}));
     properties.push_back(std::make_shared<Stock>("WEGE3", "Weg", 140.0f, 5.0f, (Color){26, 188, 156, 255}));
     
-    // Adicionar 5 FIIs adicionais
+    // Adicionar 8 FIIs adicionais (incluindo 3 para preencher posições 36, 38, 39)
     properties.push_back(std::make_shared<FII>("KNRI11", "Kinea Renda Imobiliaria", 130.0f, 10.0f, (Color){149, 165, 166, 255}));
     properties.push_back(std::make_shared<FII>("VISC11", "Vinci Shopping Centers", 150.0f, 11.0f, (Color){211, 84, 0, 255}));
     properties.push_back(std::make_shared<FII>("MXRF11", "Maxi Renda", 110.0f, 9.0f, (Color){44, 62, 80, 255}));
     properties.push_back(std::make_shared<FII>("HABT11", "Habitasul FII", 95.0f, 9.0f, (Color){22, 160, 133, 255}));
     properties.push_back(std::make_shared<FII>("RBRP11", "RBR Properties", 120.0f, 10.0f, (Color){39, 174, 96, 255}));
+    properties.push_back(std::make_shared<FII>("BTLG11", "BTG Pactual Logística", 105.0f, 9.5f, (Color){192, 57, 43, 255}));
+    properties.push_back(std::make_shared<FII>("HCRI11", "HCR Imóveis", 115.0f, 10.5f, (Color){155, 89, 182, 255}));
+    properties.push_back(std::make_shared<FII>("ALZR11", "Alianza Trust Renda", 100.0f, 9.2f, (Color){52, 73, 94, 255}));
     
-    // Distribuir propriedades aleatoriamente pelas posições do tabuleiro
-    propertyPositions.clear();
-    int slots = totalPositions;
-    int nProps = (int)properties.size();
-
-    // Criar lista de posições candidatas (0 é preferencialmente reservada para evento)
-    std::vector<int> posCandidates;
-    for (int p = 0; p < slots; ++p) {
-        // Evita usar a posição 0 aqui para garantir que possamos colocar um evento nela
-        if (p == 0) continue;
-        posCandidates.push_back(p);
-    }
-
-    // Se houver mais propriedades do que posições disponíveis (exceto 0), permita usar 0
-    if ((int)posCandidates.size() < nProps) {
-        posCandidates.clear();
-        for (int p = 0; p < slots; ++p) posCandidates.push_back(p);
-    }
-
-    std::random_device rd2;// semente diferente para esta aleatorização
-    std::mt19937 g2(rd2()); // inicializa o gerador de números aleatórios
-    std::shuffle(posCandidates.begin(), posCandidates.end(), g2);// embaralha as posições candidatas
-
-    for (int i = 0; i < nProps && i < (int)posCandidates.size(); ++i) {
-        propertyPositions.push_back(posCandidates[i]);
-    }
-
-    // Fallback: se por algum motivo ainda não temos posições suficientes, preencha sequencialmente
-    if ((int)propertyPositions.size() < nProps) {
-        for (int p = 0; p < slots && (int)propertyPositions.size() < nProps; ++p) {
-            if (std::find(propertyPositions.begin(), propertyPositions.end(), p) == propertyPositions.end())
-                propertyPositions.push_back(p);
-        }
-    }
-    // definir posições de eventos nas posições restantes escolhendo aleatoriamente
-    // Mas evitar que fiquem muito juntas: garantir uma distancia minima
+    // DISTRIBUIÇÃO FIXA - eventos em posições de números primos
+    // Mais interessante visualmente que alternado
     eventPositions.clear();
-    std::vector<int> candidates;
-    for (int pos = 0; pos < slots; pos++) {
-        if (std::find(propertyPositions.begin(), propertyPositions.end(), pos) == propertyPositions.end()) {
-            candidates.push_back(pos);
+    propertyPositions.clear();
+    
+    // Função para verificar se um número é primo
+    auto isPrime = [](int n) -> bool {
+        if (n < 2) return false;
+        if (n == 2) return true;
+        if (n % 2 == 0) return false;
+        for (int i = 3; i * i <= n; i += 2) {
+            if (n % i == 0) return false;
+        }
+        return true;
+    };
+    
+    // Distribuir baseado em números primos
+    for (int pos = 0; pos < totalPositions; pos++) {
+        if (isPrime(pos)) {
+            eventPositions.push_back(pos);
+        } else {
+            propertyPositions.push_back(pos);
         }
     }
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(candidates.begin(), candidates.end(), g);
-    int needed = std::min((int)candidates.size(), 10); // agora queremos até 10 casas de evento
-    int minDist = 2; // distancia minima entre eventos
-    for (int idx = 0; idx < (int)candidates.size() && (int)eventPositions.size() < needed; ++idx) {
-        int pos = candidates[idx];
-        if (pos == 0) continue; // já adicionada
-        bool ok = true;
-        for (int epos : eventPositions) {
-            int dist = abs(epos - pos);
-            // considerar distancia circular tambem
-            dist = std::min(dist, slots - dist);
-            if (dist < minDist) { ok = false; break; }
-        }
-        if (ok) eventPositions.push_back(pos);
-    }
-    // fallback: se nao conseguimos posições espaçadas, preencha com os primeiros
-    if ((int)eventPositions.size() < needed) {
-        for (int i = 0; i < needed && i < (int)candidates.size(); ++i) {
-            if (std::find(eventPositions.begin(), eventPositions.end(), candidates[i]) == eventPositions.end())
-                eventPositions.push_back(candidates[i]);
-        }
-    }
+    
+    // Números primos de 0 a 39: 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37 (12 eventos)
+    // Propriedades: todas as outras 28 posições
+    // Distribuição natural e visualmente mais interessante
     
     // MANTER os mesmos eventos
     events = {
@@ -151,22 +114,15 @@ void Board::initializeProperties() {
 
     // Constrói um mapeamento determinístico posição -> índice em properties para que buscas sejam robustas.
     // Inicializa o mapeamento com -1 (sem propriedade)
-    positionToProperty.assign(slots, -1);
-    // Garante que propertyPositions tenha uma entrada para cada propriedade (o fallback acima deve ter preenchido)
+    positionToProperty.assign(totalPositions, -1);
+    // Mapeia cada propriedade para sua posição
     for (size_t i = 0; i < propertyPositions.size() && i < properties.size(); ++i) {
         int pos = propertyPositions[i];
-        if (pos >= 0 && pos < slots) positionToProperty[pos] = (int)i;
+        if (pos >= 0 && pos < totalPositions) positionToProperty[pos] = (int)i;
     }
 
-    // Garante que toda posição do tabuleiro seja atribuída a uma propriedade ou a um evento.
-    // Isso evita mostrar casas vazias sem propriedade nem evento.
-    for (int pos = 0; pos < slots; ++pos) {
-        bool hasProperty = (positionToProperty[pos] != -1);
-        bool hasEvent = (std::find(eventPositions.begin(), eventPositions.end(), pos) != eventPositions.end());
-        if (!hasProperty && !hasEvent) {
-            eventPositions.push_back(pos);
-        }
-    }
+    // Posições sem propriedades nem eventos ficarão como "casas neutras/largada"
+    // Isso é normal quando temos menos propriedades que posições disponíveis
 
 }
 
