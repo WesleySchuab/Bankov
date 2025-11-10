@@ -16,8 +16,9 @@ public:
      * @param price Preço inicial.
      * @param dividendYield Rendimento/dividendo base.
      * @param color Cor usada na interface.
+     * @param position Posição no tabuleiro (0-39).
      */
-    FII(const std::string& ticker, const std::string& fundName, float price, float dividendYield, Color color);
+    FII(const std::string& ticker, const std::string& fundName, float price, float dividendYield, Color color, int position);
     
     /** Retorna o tipo de propriedade ("FII"). */
     std::string getType() const override { return "FII"; }

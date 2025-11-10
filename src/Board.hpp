@@ -11,10 +11,6 @@ class Board {
 private:
     std::vector<std::shared_ptr<Property>> properties;
     std::vector<Event> events;
-    std::vector<int> propertyPositions;
-    std::vector<int> eventPositions;
-    // Mapeamento posição -> índice em properties, -1 se não houver propriedade
-    std::vector<int> positionToProperty;
     int totalPositions;  // inicializado no construtor
     
 public:
@@ -50,8 +46,4 @@ public:
     // Configuração do tabuleiro
     /** Popula e configura as propriedades e posições do tabuleiro. */
     void initializeProperties();
-    
-private:
-    void createStocks();
-    void createFIIs();
 };

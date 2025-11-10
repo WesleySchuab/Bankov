@@ -18,6 +18,7 @@ protected:
     int owner; // 0 = sem dono, 1 = jogador1, 2 = jogador2
     Color color;
     bool mortgaged;
+    int position; // Posição no tabuleiro (0-39)
 
 public:
     /**
@@ -27,8 +28,9 @@ public:
      * @param price Preço base/inicial.
      * @param rent Valor de aluguel/dividendo base.
      * @param color Cor usada na interface.
+     * @param position Posição no tabuleiro (0-39).
      */
-    Property(const std::string& name, const std::string& desc, float price, float rent, Color color);
+    Property(const std::string& name, const std::string& desc, float price, float rent, Color color, int position);
     virtual ~Property() = default;
 
     // Getters
@@ -44,6 +46,8 @@ public:
     int getOwner() const { return owner; }
     /** Retorna a cor associada à propriedade (UI). */
     Color getColor() const { return color; }
+    /** Retorna a posição no tabuleiro (0-39). */
+    int getPosition() const { return position; }
     /** Indica se a propriedade está hipotecada. */
     bool isMortgaged() const { return mortgaged; }
 

@@ -13,8 +13,9 @@ public:
      * @param price Preço inicial.
      * @param dividend Dividend yield / renda base.
      * @param color Cor usada na interface.
+     * @param position Posição no tabuleiro (0-39).
      */
-    Stock(const std::string& ticker, const std::string& company, float price, float dividend, Color color);
+    Stock(const std::string& ticker, const std::string& company, float price, float dividend, Color color, int position);
     
     /** Retorna o tipo de propriedade ("AÇÃO"). */
     std::string getType() const override { return "AÇÃO"; }

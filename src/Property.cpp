@@ -1,9 +1,9 @@
 #include "Property.hpp"
 #include <cmath>
 
-Property::Property(const std::string& name, const std::string& desc, float price, float rent, Color color)
+Property::Property(const std::string& name, const std::string& desc, float price, float rent, Color color, int position)
     : name(name), description(desc), basePrice(price), currentPrice(price), 
-      baseRent(rent), currentRent(rent), owner(0), color(color), mortgaged(false) {}
+      baseRent(rent), currentRent(rent), owner(0), color(color), mortgaged(false), position(position) {}
 
 void Property::updatePrice(float percentage) {
     float variation = currentPrice * (percentage / 100.0f);
