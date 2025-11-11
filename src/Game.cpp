@@ -11,7 +11,7 @@
 
 Game::Game() 
     : currentPlayerIndex(0), lastDiceRoll(0), 
-      message(""), 
+      message(""), isEventMessage(false),
       waitingForPurchase(false), roundsCompleted(0), 
     globalLapsCompleted(0),
       gameRunning(true), currentState(GameState::PLAYER_TURN) {
@@ -59,10 +59,10 @@ void Game::renderMessageBox() {
     int tabuleiroHeight = 220;
     int boardBottom = tabuleiroY + tabuleiroHeight + 60; // matches renderBoard usage
 
-    int messageY = boardBottom + 50; // small gap below board
+    int messageY = boardBottom + 20; // small gap below board
     int boxX = 40; // align to left margin
     int boxW = GetScreenWidth() - 80; // usa a largura disponível entre as margens
-    int boxH = 40;
+    int boxH = 80; // Altura reduzida para não cobrir o gráfico
 
     bool showYellow = false;
     std::string yellowText = "";
@@ -78,9 +78,75 @@ void Game::renderMessageBox() {
     }
 
     if (showYellow) {
-    DrawRectangle(boxX, messageY, boxW-330, boxH, YELLOW); // x, y, width, height, color (destaque da mensagem)
-    // Alinha o texto à esquerda dentro da caixa amarela para que mensagens longas se acomodem melhor
-        DrawTextEx(fonteTexto, yellowText.c_str(), (Vector2){(float)(boxX + 10), (float)messageY + 10}, 14, 1, BLACK);
+        // Escolher cor de fundo baseada no tipo de mensagem
+        Color backgroundColor = isEventMessage ? (Color){255, 218, 203, 255} : (Color){193, 225, 193, 255}; // Pêssego ou verde suave
+        
+        DrawRectangle(boxX, messageY, boxW, boxH, backgroundColor); // x, y, width, height, color (destaque da mensagem)
+        
+        // Quebra texto em múltiplas linhas se necessário
+        int fontSize = 16;
+        int lineHeight = fontSize + 4;
+        int maxWidth = boxW - 20; // Margem normal
+        int startX = boxX + 10; // Margem normal
+        int startY = messageY + 10; // Margem normal
+        
+        // Escolher cor do texto baseada no fundo
+        Color textColor = isEventMessage ? BLACK : BLACK; // Texto preto para ambos os fundos
+        
+        // Quebrar texto em palavras
+        std::vector<std::string> words;
+        std::string word = "";
+        for (char c : yellowText) {
+            if (c == ' ' || c == '\n') {
+                if (!word.empty()) {
+                    words.push_back(word);
+                    word = "";
+                }
+                if (c == '\n') words.push_back("\n");
+            } else {
+                word += c;
+            }
+        }
+        if (!word.empty()) words.push_back(word);
+        
+        // Renderizar palavras linha por linha
+        std::string currentLine = "";
+        int currentY = startY;
+        for (const std::string& w : words) {
+            if (w == "\n") {
+                if (!currentLine.empty()) {
+                    DrawTextEx(fonteTexto, currentLine.c_str(), (Vector2){(float)startX, (float)currentY}, fontSize, 1, textColor);
+                    currentLine = "";
+                    currentY += lineHeight;
+                }
+                currentY += lineHeight;
+            } else {
+                std::string testLine = currentLine.empty() ? w : currentLine + " " + w;
+                Vector2 textSize = MeasureTextEx(fonteTexto, testLine.c_str(), fontSize, 1);
+                
+                if (textSize.x <= maxWidth) {
+                    currentLine = testLine;
+                } else {
+                    // Linha atual está cheia, renderizar e começar nova linha
+                    if (!currentLine.empty()) {
+                        DrawTextEx(fonteTexto, currentLine.c_str(), (Vector2){(float)startX, (float)currentY}, fontSize, 1, textColor);
+                        currentY += lineHeight;
+                    }
+                    currentLine = w;
+                }
+            }
+        }
+        // Renderizar última linha
+        if (!currentLine.empty()) {
+            DrawTextEx(fonteTexto, currentLine.c_str(), (Vector2){(float)startX, (float)currentY}, fontSize, 1, textColor);
+            currentY += lineHeight;
+        }
+        
+        // Mostrar instrução para continuar se estiver no estado WAITING_MESSAGE
+        if (currentState == GameState::WAITING_MESSAGE) {
+            currentY += 10;
+            DrawTextEx(fontePequena, "Pressione [N] para continuar...", (Vector2){(float)startX, (float)currentY}, 14, 1, DARKBLUE);
+        }
     }
 }
 
@@ -109,6 +175,16 @@ void Game::handleInput() {
         }
         return;
     }
+    
+    // Quando esperando que o jogador leia a mensagem após evento
+    if (currentState == GameState::WAITING_MESSAGE) {
+        if (IsKeyPressed(KEY_N)) {
+            currentState = GameState::PLAYER_TURN;
+            nextTurn();
+        }
+        return;
+    }
+    
     if (IsKeyPressed(KEY_SPACE) && currentState == GameState::PLAYER_TURN) {
         processDiceRoll();
     }
@@ -136,7 +212,7 @@ void Game::processDiceRoll() {
     auto currentPlayer = players[currentPlayerIndex];
     int posicaoAntiga = currentPlayer->getPosition();
     currentPlayer->move(lastDiceRoll);
-    setMessage(currentPlayer->getName() + " rolou " + std::to_string(lastDiceRoll));
+    setMessage(currentPlayer->getName() + " rolou " + std::to_string(lastDiceRoll), false); // Marcar como mensagem normal (não-evento)
 
     if (currentPlayer->getPosition() < posicaoAntiga) {
         // Aplicar rendimento da Selic sobre o dinheiro não investido
@@ -284,7 +360,7 @@ void Game::processDiceRoll() {
     // aplicam efeitos financeiros ou de mercado (setor/percentual)
         Event randomEvent = board.getRandomEvent();
         randomEvent.execute(*currentPlayer);
-        setMessage(randomEvent.getDescription());
+        setMessage(randomEvent.getDescription(), true); // Marcar como mensagem de evento
         float marketPct = randomEvent.getMarketPercent();
         std::string sector = randomEvent.getSectorTarget();
         if (marketPct != 0.0f) {
@@ -296,6 +372,8 @@ void Game::processDiceRoll() {
                 appendMessage(" Mercado ajustado em " + std::to_string((int)marketPct) + "% para todos os ativos.");
             }
         }
+        // Entrar no estado de espera para que o jogador leia a mensagem
+        currentState = GameState::WAITING_MESSAGE;
         // Atualiza o estado do jogador após o evento
     }
         // Amostrar patrimonio dos jogadores a cada jogada (melhora formação do gráfico)
@@ -1062,14 +1140,21 @@ float Game::calculatePlayerAssetsValue(int playerIndex) const {
 }
 
 // Define a mensagem destacada (persistente até ser sobrescrita)
-void Game::setMessage(const std::string &msg) {
+void Game::setMessage(const std::string &msg, bool isEvent) {
     message = msg;
+    isEventMessage = isEvent;
 }
 
 // Anexa texto à mensagem atual (persistente)
 void Game::appendMessage(const std::string &more) {
-    if (message.empty()) message = more;
-    else message += more;
+    if (message.empty()) {
+        message = more;
+        // Se a mensagem estava vazia, considera como não-evento por padrão
+        isEventMessage = false;
+    } else {
+        message += more;
+    }
+    // Mantém o estado atual de isEventMessage quando apenas anexa texto
 }
 
 // Renderiza um mini-gráfico de patrimônio por jogador usando `patrimonyHistory`.

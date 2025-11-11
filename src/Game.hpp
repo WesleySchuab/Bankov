@@ -16,6 +16,7 @@ private:
     int currentPlayerIndex;
     int lastDiceRoll;
     std::string message;
+    bool isEventMessage; // Flag para identificar se é mensagem de evento
     bool waitingForPurchase;
     std::shared_ptr<Property> currentProperty;
     int roundsCompleted;
@@ -27,6 +28,7 @@ private:
         PLAYER_TURN,
         BUY_PROPERTY,
         INVEST_PROPERTY,
+        WAITING_MESSAGE,
         GAME_OVER
     };
     GameState currentState;
@@ -104,7 +106,7 @@ public:
     // Mensagens destacadas exibidas entre o tabuleiro e as instruções
     void renderMessageBox();
     /** Define a mensagem destacada (persistente até ser sobrescrita). */
-    void setMessage(const std::string &msg);
+    void setMessage(const std::string &msg, bool isEvent = false);
     /** Anexa texto à mensagem atual (não expira automaticamente). */
     void appendMessage(const std::string &more);
     /** Renderiza um mini-gráfico do histórico de patrimônio por jogador. */
