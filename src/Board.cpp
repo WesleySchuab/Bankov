@@ -1,23 +1,10 @@
 #include "Board.hpp"
 #include "Stock.hpp"
 #include "FII.hpp"
-#include <random>
-#include <algorithm>
 #include <cctype>
 
 Board::Board() : totalPositions(40) {  
     initializeProperties();
-}
-
-// Função utilitária para verificar se um número é primo
-static bool isPrime(int n) {
-    if (n < 2) return false;
-    if (n == 2) return true;
-    if (n % 2 == 0) return false;
-    for (int i = 3; i * i <= n; i += 2) {
-        if (n % i == 0) return false;
-    }
-    return true;
 }
 
 void Board::initializeProperties() {
@@ -61,65 +48,41 @@ void Board::initializeProperties() {
     properties.push_back(std::make_shared<FII>("BTLG11", "BTG Pactual Logística", 105.0f, 9.5f, (Color){192, 57, 43, 255}, nonPrimePositions[posIndex++]));
     properties.push_back(std::make_shared<FII>("HCRI11", "HCR Imóveis", 115.0f, 10.5f, (Color){155, 89, 182, 255}, nonPrimePositions[posIndex++]));
     properties.push_back(std::make_shared<FII>("ALZR11", "Alianza Trust Renda", 100.0f, 9.2f, (Color){52, 73, 94, 255}, nonPrimePositions[posIndex++]));
-    
-    // Eventos fixos
-    events = {
-        Event("Dividendos! Receba $100", 100.0f, 0),
-        Event("Imposto de Renda! Pague $50", -50.0f, 0),
-        Event("Fundo desvalorizou! Pague $30", -30.0f, 0),
-        Event("Acao valorizou! Receba $80", 80.0f, 0),
-        Event("Bolsa em alta! Avance 2 casas", 0.0f, 2),
-        Event("Investidores estrangeiros estão investindo no país! Bolsa sobe 40%", 0.0f, 0, 40.0f),
-        Event("Notícia muito ruim! Mercado -50%", 0.0f, 0, -50.0f),
-        Event("Boa notícia! Mercado +10%", 0.0f, 0, 10.0f),
-        Event("Crise do minério: Commodities -30%", 0.0f, 0, -30.0f, "commodities"),
-        Event("Alta do varejo: Varejo +12%", 0.0f, 0, 12.0f, "retail"),
-        Event("Problema nos bancos: Bancos -20%", 0.0f, 0, -20.0f, "banks"),
-        Event("Campanha promocional no varejo: Varejo +8%", 0.0f, 0, 8.0f, "retail"),
-        Event("Relatorio positivo de banco: Bancos +6%", 0.0f, 0, 6.0f, "banks"),
-        Event("Quebra de mineradora: Commodities -18%", 0.0f, 0, -18.0f, "commodities"),
-        Event("FII pagou dividendos! Receba $60", 60.0f, 0),
-        Event("Taxa de administracao! Pague $40", -40.0f, 0)
-    };
 }
 
-// MÉTODOS SIMPLIFICADOS
 std::shared_ptr<Property> Board::getPropertyAtPosition(int position) const {
-    // Agora é muito simples: se a posição é número primo, não tem propriedade
-    if (isPrime(position)) return nullptr;
-    
-    // Busca linear pela propriedade na posição (poderia ser otimizado com hash map se necessário)
+    // Com a nova arquitetura, cada propriedade sabe sua própria posição
     for (const auto& property : properties) {
         if (property->getPosition() == position) {
             return property;
         }
     }
-    return nullptr;
+    return nullptr; // Nenhuma propriedade nesta posição
 }
 
 bool Board::isEventPosition(int position) const {
-    // Números primos são posições de eventos
-    return isPrime(position);
+    // Números primos são posições de eventos: 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37
+    if (position < 2) return false;
+    if (position == 2) return true;
+    if (position % 2 == 0) return false;
+    for (int i = 3; i * i <= position; i += 2) {
+        if (position % i == 0) return false;
+    }
+    return true;
 }
 
 Event Board::getRandomEvent() const {
-    if (events.empty()) {
-        return Event("Nenhum evento", 0.0f, 0);
-    }
-    
-    int randomIndex = GetRandomValue(0, events.size() - 1);
-    return events[randomIndex];
+    return Event::createRandomEvent();
 }
 
-// FUNÇÕES AUXILIARES PARA CATEGORIZAÇÃO DE ATIVOS
 static bool isHighDYAsset(const std::shared_ptr<Property>& property) {
-    // FIIs são considerados de alto DY
+    // FIIs are considered high DY
     if (std::dynamic_pointer_cast<FII>(property)) return true;
 
-    // Para ações, considere bancos e tickers relacionados a commodities como alto DY
+    // For stocks, consider banks and commodity-related tickers as high-DY
     if (auto s = std::dynamic_pointer_cast<Stock>(property)) {
         std::string ticker = s->getTicker();
-        // Normalize to uppercase (tickers already uppercase, but safe)
+        // Normalize to uppercase (tickers are already uppercase, but safe)
         for (auto &c : ticker) c = toupper((unsigned char)c);
 
         const std::vector<std::string> highDySubstr = {
@@ -130,9 +93,24 @@ static bool isHighDYAsset(const std::shared_ptr<Property>& property) {
             if (ticker.find(sub) != std::string::npos) return true;
         }
     }
+
     return false;
 }
 
+void Board::applyMarketShift(float percentHighDY, float percentOthers) {
+    // Aplica mudanças de preço diferenciadas para ativos de alto DY e outros
+    for (auto& property : properties) {
+        if (isHighDYAsset(property)) {
+            property->updatePrice(percentHighDY);
+            property->updateRent(percentHighDY * 0.7f);
+        } else {
+            property->updatePrice(percentOthers);
+            property->updateRent(percentOthers * 0.7f);
+        }
+    }
+}
+
+// Helpers para detectar pertencimento a setores
 static bool isCommodityAsset(const std::shared_ptr<Property>& property) {
     if (auto s = std::dynamic_pointer_cast<Stock>(property)) {
         std::string t = s->getTicker();
@@ -164,22 +142,8 @@ static bool isBankAsset(const std::shared_ptr<Property>& property) {
     return false;
 }
 
-// MÉTODOS DE MANIPULAÇÃO DE MERCADO
-void Board::applyMarketShift(float percentHighDY, float percentOthers) {
-    // Aplica mudanças de preço diferenciadas para ativos de alto DY e outros
-    for (auto& property : properties) {
-        if (isHighDYAsset(property)) {
-            property->updatePrice(percentHighDY);
-            property->updateRent(percentHighDY * 0.7f);
-        } else {
-            property->updatePrice(percentOthers);
-            property->updateRent(percentOthers * 0.7f);
-        }
-    }
-}
-
 void Board::applyMarketShiftForSector(const std::string& sector, float percent) {
-    // Aplica um shift percentual a um setor específico
+    // Aplica um shift percentual a um setor específico (ex: "commodities").
     std::string s = sector;
     for (auto &c : s) c = tolower((unsigned char)c);
     for (auto& property : properties) {
@@ -197,7 +161,7 @@ void Board::applyMarketShiftForSector(const std::string& sector, float percent) 
 }
 
 void Board::resetMarketPrices() {
-    // Restaura preços ao valor base
+    // Restaura preços ao valor base.
     for (auto& property : properties) {
         property->resetToBasePrice();
     }

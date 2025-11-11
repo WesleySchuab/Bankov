@@ -10,7 +10,6 @@
 class Board {
 private:
     std::vector<std::shared_ptr<Property>> properties;
-    std::vector<Event> events;
     int totalPositions;  // inicializado no construtor
     
 public:
