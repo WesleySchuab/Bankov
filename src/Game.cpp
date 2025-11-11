@@ -139,8 +139,24 @@ void Game::processDiceRoll() {
     setMessage(currentPlayer->getName() + " rolou " + std::to_string(lastDiceRoll));
 
     if (currentPlayer->getPosition() < posicaoAntiga) {
+        // Aplicar rendimento da Selic sobre o dinheiro não investido
+        float dinheiroAtual = currentPlayer->getMoney();
+        float rendimento = dinheiroAtual * (selicRate / 100.0f);
+        currentPlayer->addMoney(rendimento);
+        
+        // Bonus da volta completa
         currentPlayer->addMoney(200);
+        
+        // Mensagem com detalhes do rendimento
         appendMessage(" - Ganhou $200 por completar uma volta!");
+        if (rendimento > 0.1f) {
+            appendMessage(" - Rendimento Selic (" + std::to_string(selicRate).substr(0, 4) + "%): +$" + std::to_string((int)rendimento));
+        }
+        
+        // Reduzir a Selic após aplicar o rendimento
+        selicRate = std::max(2.0f, selicRate - 0.5f);
+        appendMessage(" - Selic reduzida para " + std::to_string(selicRate).substr(0, 4) + "%");
+        
         // Incrementar o contador de voltas do jogador e verificar condição de fim
         currentPlayer->incrementLaps();
         // Incrementar contador global de voltas completas e de "rounds" (contagem usada para efeitos)
