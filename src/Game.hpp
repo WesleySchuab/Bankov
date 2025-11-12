@@ -38,6 +38,17 @@ private:
     Font fonteTexto;
     Font fontePequena;
     Font fonteNegrito;
+    
+    // NOVO: Sistema de dado animado
+    bool diceAnimating;
+    float diceAnimationTime;
+    int diceCurrentFrame;
+    float diceX, diceY; // Posição atual do dado
+    float diceStartX, diceStartY; // Posição inicial
+    float diceEndX, diceEndY; // Posição final
+    float diceRotation; // Rotação atual do dado
+    const float diceAnimationDuration = 2.0f; // duração da animação em segundos
+    Texture2D diceTexture;
 
 public:
     Game();
@@ -73,6 +84,8 @@ public:
     void processSellProperty();
     /** O jogador atual passa a vez (não compra). */
     void processPassTurn();
+    /** O jogador atual passa a vez quando está em propriedade própria. */
+    void processPassTurnFromOwnProperty();
 
     // extra holdings per player: ticker/name -> count (additional units bought)
     std::vector<std::map<std::string,int>> extraHoldings;
@@ -112,6 +125,12 @@ public:
     void appendMessage(const std::string &more);
     /** Renderiza um mini-gráfico do histórico de patrimônio por jogador. */
     void renderPatrimonyChart();
+    /** Cria a textura do dado proceduralmente. */
+    void createDiceTexture();
+    /** Renderiza o dado animado na tela. */
+    void renderDice();
+    /** Inicia a animação do dado. */
+    void startDiceAnimation();
 
 private:
     // (mensagens agora persistem até serem sobrescritas)

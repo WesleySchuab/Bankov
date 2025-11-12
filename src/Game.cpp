@@ -8,16 +8,30 @@
 #include <map>
 #include <sstream>
 #include <algorithm>
+#include <cmath>
 
 Game::Game() 
     : currentPlayerIndex(0), lastDiceRoll(0), 
       message(""), isEventMessage(false),
       waitingForPurchase(false), roundsCompleted(0), 
     globalLapsCompleted(0),
-      gameRunning(true), currentState(GameState::PLAYER_TURN) {
+      gameRunning(true), currentState(GameState::PLAYER_TURN),
+      diceAnimating(false), diceAnimationTime(0.0f), diceCurrentFrame(1),
+      diceX(0), diceY(0), diceStartX(50), diceStartY(600), 
+      diceEndX(0), diceEndY(0), diceRotation(0.0f) {
     
-    InitWindow(1300, 1000, "Acoes & Fundos Imobiliarios");
+    // Obter resolução nativa do monitor
+    int monitor = GetCurrentMonitor();
+    int screenWidth = GetMonitorWidth(monitor);
+    int screenHeight = GetMonitorHeight(monitor);
+    
+    // Inicializar janela em tela cheia com resolução nativa
+    InitWindow(screenWidth, screenHeight, "Acoes & Fundos Imobiliarios");
+    ToggleFullscreen(); // Ativar modo tela cheia
     SetTargetFPS(60);
+    
+    // Criar textura do dado
+    createDiceTexture();
     
     // CARREGAR FONTES PERSONALIZADAS
     fonteTitulo = LoadFont("assets/fonts/Lato-Black.ttf");
@@ -167,6 +181,9 @@ Game::~Game() {
     UnloadFont(fontePequena);
     UnloadFont(fonteNegrito);
     
+    // DESCARREGAR TEXTURA DO DADO
+    UnloadTexture(diceTexture);
+    
     CloseWindow();
 }
 
@@ -216,10 +233,16 @@ void Game::handleInput() {
     if (IsKeyPressed(KEY_V) && currentState == GameState::INVEST_PROPERTY) {
         processSellProperty();
     }
+    // Passar a vez quando estiver na própria propriedade
+    if (IsKeyPressed(KEY_N) && currentState == GameState::INVEST_PROPERTY) {
+        processPassTurnFromOwnProperty();
+    }
 }
 
 void Game::processDiceRoll() {
     lastDiceRoll = GetRandomValue(1, 6);
+    startDiceAnimation(); // Iniciar animação do dado
+    
     auto currentPlayer = players[currentPlayerIndex];
     int posicaoAntiga = currentPlayer->getPosition();
     currentPlayer->move(lastDiceRoll);
@@ -241,8 +264,15 @@ void Game::processDiceRoll() {
         }
         
         // Reduzir a Selic após aplicar o rendimento
+        float oldSelicRate = selicRate;
         selicRate = std::max(2.0f, selicRate - 0.5f);
         appendMessage(" - Selic reduzida para " + std::to_string(selicRate).substr(0, 4) + "%");
+        
+        // Quando a Selic cai, os ativos sobem (relação inversa realística)
+        if (selicRate < oldSelicRate) {
+            board.applyMarketShift(selicAssetsBumpPercentHighDY, selicAssetsBumpPercentOthers);
+            appendMessage(" - FIIs/bancos/commodities subiram " + std::to_string((int)selicAssetsBumpPercentHighDY) + "%, demais ativos subiram " + std::to_string((int)selicAssetsBumpPercentOthers) + "%");
+        }
         
         // Incrementar o contador de voltas do jogador e verificar condição de fim
         currentPlayer->incrementLaps();
@@ -362,7 +392,7 @@ void Game::processDiceRoll() {
         }
         else {
             // Property is owned by current player: can invest or sell
-            appendMessage(" - Voce ja e proprietario. Pressione I para investir (aumenta valor/aluguel) ou V para vender.");
+            appendMessage(" - Voce ja e proprietario. Pressione I para investir (aumenta valor/aluguel), V para vender ou N para passar a vez.");
             currentState = GameState::INVEST_PROPERTY;
             waitingForPurchase = false;
         }
@@ -431,6 +461,13 @@ void Game::processPassTurn() {
     nextTurn();
 }
 
+void Game::processPassTurnFromOwnProperty() {
+    setMessage("PASSOU " + players[currentPlayerIndex]->getName() + " passou a vez (propriedade própria)");
+    currentProperty.reset();
+    currentState = GameState::PLAYER_TURN;
+    nextTurn();
+}
+
 void Game::nextTurn() {
     currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
     currentState = GameState::PLAYER_TURN;
@@ -472,20 +509,9 @@ void Game::checkRoundCompletion() {
 }
 
 void Game::processMarketFluctuations() {
-    // dirigidas pela SELIC.
-
-    // A cada selicDecreaseInterval rodadas, a SELIC diminui e os ativos recebem um aumento
-    if (roundsCompleted > 0 && (roundsCompleted % selicDecreaseInterval) == 0) {
-        float oldSelic = selicRate;
-        selicRate = std::max(0.0f, selicRate - selicDecreaseStep);
-        // aplica um aumento de mercado diferenciado para os ativos quando a SELIC diminui
-        board.applyMarketShift(selicAssetsBumpPercentHighDY, selicAssetsBumpPercentOthers);
-
-    // Informar o jogador especificamente sobre a mudança da SELIC
-        // criar string em uma passada para evitar múltiplos appends
-        setMessage(std::string("SELIC caiu de ") + std::to_string((int)oldSelic) + "% para " + std::to_string((int)selicRate) + "% - FIIs/bancos/commodities subiram " + std::to_string((int)selicAssetsBumpPercentHighDY) + "% e os demais ativos subiram " + std::to_string((int)selicAssetsBumpPercentOthers) + "%");
-    }
-
+    // Flutuações de mercado dirigidas pela SELIC já são aplicadas quando o jogador completa volta
+    // Esta função agora apenas registra o histórico de patrimônio
+    
     // Registrar o valor dos ativos (sem caixa) no historico de cada jogador
     for (int i = 0; i < (int)players.size(); ++i) {
         float assetsValue = calculatePlayerAssetsValue(i);
@@ -493,10 +519,46 @@ void Game::processMarketFluctuations() {
     }
 }
 
-// Atualiza a lógica por frame — sem temporizadores de mensagem (mensagens persistem)
+// Atualiza a lógica por frame — animações e temporizadores
 void Game::update() {
-    // Mantemos o frame-time disponível para futuras expansões; não usamos temporizadores de mensagem
-    (void)GetFrameTime();
+    float deltaTime = GetFrameTime();
+    
+    // Atualizar animação do dado
+    if (diceAnimating) {
+        diceAnimationTime += deltaTime;
+        
+        // Calcular progresso da animação (0.0 a 1.0)
+        float progress = diceAnimationTime / diceAnimationDuration;
+        progress = std::min(progress, 1.0f);
+        
+        // Função de easing para movimento suave (ease-out)
+        float easedProgress = 1.0f - (1.0f - progress) * (1.0f - progress);
+        
+        // Interpolar posição do dado
+        diceX = diceStartX + (diceEndX - diceStartX) * easedProgress;
+        diceY = diceStartY + (diceEndY - diceStartY) * easedProgress;
+        
+        // Rotação do dado (múltiplas voltas)
+        diceRotation = progress * 720.0f + (std::sin(progress * 20.0f) * 45.0f); // 720 graus + oscilação
+        
+        // Mudança dos pontos durante a animação
+        if (progress < 0.8f) {
+            // Rolar rapidamente através dos números
+            diceCurrentFrame = GetRandomValue(1, 6);
+        } else {
+            // Nos últimos 20% da animação, mostrar o resultado final
+            diceCurrentFrame = lastDiceRoll;
+        }
+        
+        // Parar animação quando terminar
+        if (diceAnimationTime >= diceAnimationDuration) {
+            diceAnimating = false;
+            diceCurrentFrame = lastDiceRoll;
+            diceRotation = 0.0f;
+            diceX = diceEndX;
+            diceY = diceEndY;
+        }
+    }
 }
 
 void Game::render() {
@@ -505,6 +567,7 @@ void Game::render() {
     renderPlayers();
     renderBoard();
     renderMessageBox();
+    renderDice(); // Renderizar dado após as mensagens
     renderPatrimonyChart();
     renderInstructions();
     // Se estivermos em GAME_OVER, desenhar overlay com botão de reinício
@@ -565,9 +628,17 @@ void Game::renderPlayers() {
         int colPriceW = 60;
         int colTotalW = 70;
         int colPLW = 60;
-    int rowH = textSize + 6; // altura da linha ajustada ao tamanho do texto
+        int rowH = textSize + 6; // altura da linha ajustada ao tamanho do texto
         int y = baseY;
-        DrawTextEx(fonteNegrito, "Ativo", (Vector2){(float)baseX, (float)y}, textSize, 1, textColor);
+        
+        // Pular uma linha antes de mostrar o rendimento da Selic
+        y += rowH;
+        
+        // Mostrar rendimento da Selic do dinheiro não investido
+        float dinheiroAtual = players[pid]->getMoney();
+        float rendimentoSelic = dinheiroAtual * (selicRate / 100.0f);
+        DrawTextEx(fonteNegrito, TextFormat("Dinheiro: $%.0f | Selic %.2f%% = +$%.0f/volta", dinheiroAtual, selicRate, rendimentoSelic), (Vector2){(float)baseX, (float)y}, textSize, 1, textColor);
+        y += rowH + 4; // espaço extra após a linha de rendimento        DrawTextEx(fonteNegrito, "Ativo", (Vector2){(float)baseX, (float)y}, textSize, 1, textColor);
         DrawTextEx(fonteNegrito, "Un", (Vector2){(float)(baseX + colTickerW), (float)y}, textSize, 1, textColor);
         DrawTextEx(fonteNegrito, "Avg", (Vector2){(float)(baseX + colTickerW + colUnitsW), (float)y}, textSize, 1, textColor);
         DrawTextEx(fonteNegrito, "Prc", (Vector2){(float)(baseX + colTickerW + colUnitsW + colAvgW), (float)y}, textSize, 1, textColor);
@@ -1000,7 +1071,7 @@ void Game::renderInstructions() {
     DrawRectangle(20, instrucoesY - 6, GetScreenWidth() - 40, 36, (Color){70, 130, 180, 255}); // x, y, width, height, color (instructions background)
 
     // Instrucoes em linha unica separadas por pipe
-    const char *instr = "ESPACO = Rolar dado  |  C = Comprar propriedade  |  N = Passar a vez  |  I = Investir  V = Vender";
+    const char *instr = "ESPACO = Rolar dado  |  C = Comprar propriedade  |  N = Passar a vez  |  I = Investir  |  V = Vender";
     DrawTextEx(fonteTexto, instr, (Vector2){40, (float)instrucoesY}, 16, 1, WHITE);
 }
 
@@ -1251,5 +1322,145 @@ void Game::samplePatrimonyHistory() {
             size_t excess = patrimonyHistory[i].size() - MAX_HISTORY;
             patrimonyHistory[i].erase(patrimonyHistory[i].begin(), patrimonyHistory[i].begin() + excess);
         }
+    }
+}
+
+void Game::createDiceTexture() {
+    // Criar uma imagem procedural do dado (80x80 pixels) com aparência 3D
+    int size = 80;
+    Image diceImage = GenImageColor(size, size, BLANK);
+    
+    // Criar efeito 3D com gradiente
+    for (int y = 0; y < size; y++) {
+        for (int x = 0; x < size; x++) {
+            // Bordas do dado
+            if (x == 0 || y == 0 || x == size-1 || y == size-1) {
+                ImageDrawPixel(&diceImage, x, y, BLACK);
+            }
+            // Face principal (gradiente claro)
+            else if (x < size-8 && y < size-8) {
+                int brightness = 255 - (x + y) / 8; // Gradiente sutil
+                brightness = std::max(200, std::min(255, brightness));
+                unsigned char b = (unsigned char)brightness;
+                ImageDrawPixel(&diceImage, x, y, (Color){b, b, b, 255});
+            }
+            // Face lateral direita (mais escura)
+            else if (x >= size-8) {
+                int brightness = 160 - y / 4;
+                brightness = std::max(120, std::min(180, brightness));
+                unsigned char b = (unsigned char)brightness;
+                ImageDrawPixel(&diceImage, x, y, (Color){b, b, b, 255});
+            }
+            // Face inferior (mais escura)
+            else if (y >= size-8) {
+                int brightness = 160 - x / 4;
+                brightness = std::max(120, std::min(180, brightness));
+                unsigned char b = (unsigned char)brightness;
+                ImageDrawPixel(&diceImage, x, y, (Color){b, b, b, 255});
+            }
+            // Preencher o resto
+            else {
+                ImageDrawPixel(&diceImage, x, y, (Color){220, 220, 220, 255});
+            }
+        }
+    }
+    
+    diceTexture = LoadTextureFromImage(diceImage);
+    UnloadImage(diceImage);
+}
+
+void Game::startDiceAnimation() {
+    diceAnimating = true;
+    diceAnimationTime = 0.0f;
+    diceCurrentFrame = 1;
+    diceRotation = 0.0f;
+    
+    // Calcular posições baseado na área das mensagens
+    int tabuleiroY = 450;
+    int tabuleiroHeight = 300;
+    int boardBottom = tabuleiroY + tabuleiroHeight + 60;
+    int messageY = boardBottom + 20;
+    int messageHeight = 80;
+    
+    // Posição inicial: lado esquerdo da tela
+    diceStartX = 50;
+    diceStartY = messageY + messageHeight + 20; // Logo abaixo das mensagens
+    
+    // Posição final: meio da tela (não muito à direita para não sobrepor o gráfico)
+    diceEndX = GetScreenWidth() / 2 - 40; // Centro da tela, um pouco à esquerda
+    diceEndY = diceStartY; // Mesma altura
+    
+    // Definir posição inicial
+    diceX = diceStartX;
+    diceY = diceStartY;
+}
+
+void Game::renderDice() {
+    // Só renderizar se a animação estiver ativa ou se tivermos um resultado
+    if (!diceAnimating && lastDiceRoll == 0) return;
+    
+    int diceSize = 80;
+    
+    // Desenhar sombra
+    DrawRectangle((int)diceX + 4, (int)diceY + 4, diceSize, diceSize, (Color){0, 0, 0, 100});
+    
+    // Calcular centro da textura para rotação
+    Vector2 center = {diceSize / 2.0f, diceSize / 2.0f};
+    Rectangle source = {0, 0, (float)diceTexture.width, (float)diceTexture.height};
+    Rectangle dest = {diceX + center.x, diceY + center.y, (float)diceSize, (float)diceSize};
+    
+    // Desenhar textura do dado com rotação
+    DrawTexturePro(diceTexture, source, dest, center, diceRotation, WHITE);
+    
+    // Desenhar os pontos baseado no número atual
+    int dotSize = 6;
+    float centerX = diceX + diceSize / 2;
+    float centerY = diceY + diceSize / 2;
+    
+    // Aplicar rotação nos pontos também (simplificado)
+    Color dotColor = diceAnimating ? (Color){255, 50, 50, 255} : BLACK;
+    
+    // Para simplificar, vou desenhar os pontos sem rotação mas com cor diferenciada durante animação
+    switch (diceCurrentFrame) {
+        case 1:
+            DrawCircle((int)centerX, (int)centerY, dotSize, dotColor);
+            break;
+        case 2:
+            DrawCircle((int)(diceX + 25), (int)(diceY + 25), dotSize, dotColor);
+            DrawCircle((int)(diceX + 55), (int)(diceY + 55), dotSize, dotColor);
+            break;
+        case 3:
+            DrawCircle((int)(diceX + 20), (int)(diceY + 20), dotSize, dotColor);
+            DrawCircle((int)centerX, (int)centerY, dotSize, dotColor);
+            DrawCircle((int)(diceX + 60), (int)(diceY + 60), dotSize, dotColor);
+            break;
+        case 4:
+            DrawCircle((int)(diceX + 25), (int)(diceY + 25), dotSize, dotColor);
+            DrawCircle((int)(diceX + 55), (int)(diceY + 25), dotSize, dotColor);
+            DrawCircle((int)(diceX + 25), (int)(diceY + 55), dotSize, dotColor);
+            DrawCircle((int)(diceX + 55), (int)(diceY + 55), dotSize, dotColor);
+            break;
+        case 5:
+            DrawCircle((int)(diceX + 25), (int)(diceY + 25), dotSize, dotColor);
+            DrawCircle((int)(diceX + 55), (int)(diceY + 25), dotSize, dotColor);
+            DrawCircle((int)centerX, (int)centerY, dotSize, dotColor);
+            DrawCircle((int)(diceX + 25), (int)(diceY + 55), dotSize, dotColor);
+            DrawCircle((int)(diceX + 55), (int)(diceY + 55), dotSize, dotColor);
+            break;
+        case 6:
+            DrawCircle((int)(diceX + 25), (int)(diceY + 20), dotSize, dotColor);
+            DrawCircle((int)(diceX + 25), (int)(diceY + 40), dotSize, dotColor);
+            DrawCircle((int)(diceX + 25), (int)(diceY + 60), dotSize, dotColor);
+            DrawCircle((int)(diceX + 55), (int)(diceY + 20), dotSize, dotColor);
+            DrawCircle((int)(diceX + 55), (int)(diceY + 40), dotSize, dotColor);
+            DrawCircle((int)(diceX + 55), (int)(diceY + 60), dotSize, dotColor);
+            break;
+    }
+    
+    // Texto indicativo
+    if (diceAnimating) {
+        DrawTextEx(fonteNegrito, "Rolando dado...", (Vector2){diceX, diceY + diceSize + 10}, 16, 1, (Color){255, 100, 100, 255});
+    } else if (lastDiceRoll > 0) {
+        DrawTextEx(fonteNegrito, TextFormat("Resultado: %d", lastDiceRoll), (Vector2){diceX, diceY + diceSize + 10}, 16, 1, (Color){0, 120, 0, 255});
     }
 }
