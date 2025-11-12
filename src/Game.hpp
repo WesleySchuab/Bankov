@@ -37,6 +37,7 @@ private:
     Font fonteTitulo;
     Font fonteTexto;
     Font fontePequena;
+    Font fonteNegrito;
 
 public:
     Game();

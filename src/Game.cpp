@@ -23,6 +23,7 @@ Game::Game()
     fonteTitulo = LoadFont("assets/fonts/Lato-Black.ttf");
     fonteTexto = LoadFont("assets/fonts/Lato-Black.ttf"); 
     fontePequena = LoadFont("assets/fonts/Lato-Black.ttf");
+    fonteNegrito = LoadFont("assets/Lato/Lato-Bold.ttf");
     
     // Verificar se as fontes carregaram corretamente
     if (fonteTitulo.texture.id == 0) {
@@ -33,6 +34,15 @@ Game::Game()
         fontePequena = GetFontDefault();
     } else {
         printf("SUCESSO: Fonte Lato-Black carregada!\n");
+    }
+    
+    // Verificar fonte negrito separadamente
+    if (fonteNegrito.texture.id == 0) {
+        printf("ERRO: Nao foi possivel carregar a fonte Lato-Bold.ttf\n");
+        printf("Verifique se o arquivo esta em: assets/Lato/Lato-Bold.ttf\n");
+        fonteNegrito = GetFontDefault();
+    } else {
+        printf("SUCESSO: Fonte Lato-Bold carregada!\n");
     }
     
     initializePlayers();
@@ -155,12 +165,13 @@ Game::~Game() {
     UnloadFont(fonteTitulo);
     UnloadFont(fonteTexto);
     UnloadFont(fontePequena);
+    UnloadFont(fonteNegrito);
     
     CloseWindow();
 }
 
 void Game::run() {
-    while (!WindowShouldClose() && true) {
+    while (!WindowShouldClose()) {
         handleInput();
         update();
         render();
@@ -556,12 +567,12 @@ void Game::renderPlayers() {
         int colPLW = 60;
     int rowH = textSize + 6; // altura da linha ajustada ao tamanho do texto
         int y = baseY;
-        DrawTextEx(fontePequena, "Ativo", (Vector2){(float)baseX, (float)y}, textSize, 1, textColor);
-        DrawTextEx(fontePequena, "Un", (Vector2){(float)(baseX + colTickerW), (float)y}, textSize, 1, textColor);
-        DrawTextEx(fontePequena, "Avg", (Vector2){(float)(baseX + colTickerW + colUnitsW), (float)y}, textSize, 1, textColor);
-        DrawTextEx(fontePequena, "Prc", (Vector2){(float)(baseX + colTickerW + colUnitsW + colAvgW), (float)y}, textSize, 1, textColor);
-        DrawTextEx(fontePequena, "Val", (Vector2){(float)(baseX + colTickerW + colUnitsW + colAvgW + colPriceW), (float)y}, textSize, 1, textColor);
-        DrawTextEx(fontePequena, "P/L%", (Vector2){(float)(baseX + colTickerW + colUnitsW + colAvgW + colPriceW + colTotalW), (float)y}, textSize, 1, textColor);
+        DrawTextEx(fonteNegrito, "Ativo", (Vector2){(float)baseX, (float)y}, textSize, 1, textColor);
+        DrawTextEx(fonteNegrito, "Un", (Vector2){(float)(baseX + colTickerW), (float)y}, textSize, 1, textColor);
+        DrawTextEx(fonteNegrito, "Avg", (Vector2){(float)(baseX + colTickerW + colUnitsW), (float)y}, textSize, 1, textColor);
+        DrawTextEx(fonteNegrito, "Prc", (Vector2){(float)(baseX + colTickerW + colUnitsW + colAvgW), (float)y}, textSize, 1, textColor);
+        DrawTextEx(fonteNegrito, "Val", (Vector2){(float)(baseX + colTickerW + colUnitsW + colAvgW + colPriceW), (float)y}, textSize, 1, textColor);
+        DrawTextEx(fonteNegrito, "P/L%", (Vector2){(float)(baseX + colTickerW + colUnitsW + colAvgW + colPriceW + colTotalW), (float)y}, textSize, 1, textColor);
         y += rowH;
 
         // ordenar por valor de mercado (desc)
@@ -630,7 +641,7 @@ void Game::renderPlayers() {
     DrawRectangle(20, painelY + 10, (GetScreenWidth() /2 -50) , 400, bgJogador1); // x, y, width, height, color (bgJogador1)
 
     // Mostrar nome, posicao e dinheiro na mesma linha para economizar espaço
-    DrawTextEx(fonteTexto, TextFormat("JOGADOR 1  |  Pos: %d  |  $%.0f", players[0]->getPosition(), players[0]->getMoney()), (Vector2){50, (float)painelY + 42}, 18, 1, textJogador1);
+    DrawTextEx(fonteNegrito, TextFormat("JOGADOR 1  |  Pos: %d  |  $%.0f", players[0]->getPosition(), players[0]->getMoney()), (Vector2){50, (float)painelY + 42}, 18, 1, textJogador1);
     // Mostrar carteira do Jogador 1 (tabela compacta) — fonte maior para melhor leitura
     renderPortfolio(0, 50, painelY + 62, textJogador1, 16);
     
@@ -647,7 +658,7 @@ void Game::renderPlayers() {
     int textOffset = player1TextX - player1PanelX; // 30
     int player2TextX = player2PanelX + textOffset;
 
-    DrawTextEx(fonteTexto, TextFormat("JOGADOR 2  |  Pos: %d  |  $%.0f", players[1]->getPosition(), players[1]->getMoney()), (Vector2){(float)player2TextX, (float)painelY + 42}, 18, 1, textJogador2);
+    DrawTextEx(fonteNegrito, TextFormat("JOGADOR 2  |  Pos: %d  |  $%.0f", players[1]->getPosition(), players[1]->getMoney()), (Vector2){(float)player2TextX, (float)painelY + 42}, 18, 1, textJogador2);
     // Mostrar carteira do Jogador 2 (tabela compacta) — manter fonte maior
     renderPortfolio(1, player2TextX, painelY + 62, textJogador2, 16);
 }
@@ -658,7 +669,7 @@ void Game::renderBoard() {
     int tabuleiroHeight = 300; // increased overall board panel height to fit larger houses
     
     // mostrar taxa SELIC logo acima do tabuleiro e indicar quantas voltas já foram concluídas
-    DrawTextEx(fonteTexto, TextFormat("SELIC: %.2f%%  |  Voltas concluídas: %d/4", selicRate, globalLapsCompleted), (Vector2){40, (float)tabuleiroY - 28}, 18, 1, BLACK);
+    DrawTextEx(fonteNegrito, TextFormat("SELIC: %.2f%%  |  Voltas concluídas: %d/4", selicRate, globalLapsCompleted), (Vector2){40, (float)tabuleiroY - 28}, 18, 1, BLACK);
     DrawRectangle(20, tabuleiroY, GetScreenWidth() - 40, tabuleiroHeight + 60, LIGHTGRAY); // x, y, width, height, color (board background)
     
     int casasPorLinha = 10;
@@ -991,12 +1002,6 @@ void Game::renderInstructions() {
     // Instrucoes em linha unica separadas por pipe
     const char *instr = "ESPACO = Rolar dado  |  C = Comprar propriedade  |  N = Passar a vez  |  I = Investir  V = Vender";
     DrawTextEx(fonteTexto, instr, (Vector2){40, (float)instrucoesY}, 16, 1, WHITE);
-
-    // Mecanismo de seguranca: se estivermos no estado INVEST_PROPERTY, ainda ouvimos I/V aqui
-    if (currentState == GameState::INVEST_PROPERTY) {
-        if (IsKeyPressed(KEY_I)) processInvestProperty();
-        if (IsKeyPressed(KEY_V)) processSellProperty();
-    }
 }
 
 void Game::initializePlayers() {
