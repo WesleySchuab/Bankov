@@ -49,6 +49,11 @@ private:
     float diceRotation; // Rotação atual do dado
     const float diceAnimationDuration = 2.0f; // duração da animação em segundos
     Texture2D diceTexture;
+    // Menu de pausa (mostrar opções de sair/minimizar)
+    bool showPauseMenu = false;
+
+    // Renderiza o overlay de pausa com opções (Retomar / Minimizar / Sair)
+    void renderPauseMenu();
 
 public:
     Game();

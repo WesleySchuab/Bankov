@@ -17,8 +17,8 @@ Game::Game()
     globalLapsCompleted(0),
       gameRunning(true), currentState(GameState::PLAYER_TURN),
       diceAnimating(false), diceAnimationTime(0.0f), diceCurrentFrame(1),
-      diceX(0), diceY(0), diceStartX(50), diceStartY(600), 
-      diceEndX(0), diceEndY(0), diceRotation(0.0f) {
+    diceX(0), diceY(0), diceStartX(50), diceStartY(600), 
+    diceEndX(0), diceEndY(0), diceRotation(0.0f) {
     
     // Obter resolução nativa do monitor
     int monitor = GetCurrentMonitor();
@@ -196,6 +196,29 @@ void Game::run() {
 }
 
 void Game::handleInput() {
+    // Atalho para abrir/fechar menu de pausa (ESC)
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        showPauseMenu = !showPauseMenu;
+        // Quando abrimos o menu, pausamos a entrada de jogo normal
+        return;
+    }
+
+    // Se o menu de pausa estiver aberto, tratar apenas as teclas do menu
+    if (showPauseMenu) {
+        if (IsKeyPressed(KEY_R)) {
+            // Retomar
+            showPauseMenu = false;
+        }
+        if (IsKeyPressed(KEY_M)) {
+            // Minimizar janela (raylib)
+            MinimizeWindow();
+        }
+        if (IsKeyPressed(KEY_Q) || IsKeyPressed(KEY_E)) {
+            // Sair do jogo
+            CloseWindow();
+        }
+        return; // Não processar outras entradas enquanto estiver no menu
+    }
     // Quando em estado GAME_OVER, somente aceitar reinício (R)
     if (currentState == GameState::GAME_OVER) {
         if (IsKeyPressed(KEY_R)) {
@@ -570,6 +593,10 @@ void Game::render() {
     renderDice(); // Renderizar dado após as mensagens
     renderPatrimonyChart();
     renderInstructions();
+    // Se o menu de pausa estiver ativo, desenhar overlay com opções
+    if (showPauseMenu) {
+        renderPauseMenu();
+    }
     // Se estivermos em GAME_OVER, desenhar overlay com botão de reinício
     if (currentState == GameState::GAME_OVER) {
         int w = GetScreenWidth();
@@ -1071,7 +1098,7 @@ void Game::renderInstructions() {
     DrawRectangle(20, instrucoesY - 6, GetScreenWidth() - 40, 36, (Color){70, 130, 180, 255}); // x, y, width, height, color (instructions background)
 
     // Instrucoes em linha unica separadas por pipe
-    const char *instr = "ESPACO = Rolar dado  |  C = Comprar propriedade  |  N = Passar a vez  |  I = Investir  |  V = Vender";
+    const char *instr = "ESPACO = Rolar dado  |  C = Comprar propriedade  |  N = Passar a vez  |  I = Investir  |  V = Vender  |  ESC = Menu (sair/minimizar)";
     DrawTextEx(fonteTexto, instr, (Vector2){40, (float)instrucoesY}, 16, 1, WHITE);
 }
 
@@ -1463,4 +1490,26 @@ void Game::renderDice() {
     } else if (lastDiceRoll > 0) {
         DrawTextEx(fonteNegrito, TextFormat("Resultado: %d", lastDiceRoll), (Vector2){diceX, diceY + diceSize + 10}, 16, 1, (Color){0, 120, 0, 255});
     }
+}
+
+void Game::renderPauseMenu() {
+    int w = GetScreenWidth();
+    int h = GetScreenHeight();
+    // overlay semitransparente escuro
+    DrawRectangle(0, 0, w, h, (Color){0, 0, 0, 160});
+
+    const char *title = "MENU";
+    Vector2 mt = MeasureTextEx(fonteTitulo, title, 36, 2);
+    DrawTextEx(fonteTitulo, title, (Vector2){((float)w - mt.x)/2.0f, (float)(h/2 - 120)}, 36, 2, WHITE);
+
+    const char *opts[] = {"R = Retomar", "M = Minimizar janela", "Q = Sair do jogo"};
+    int y = h/2 - 40;
+    for (int i = 0; i < 3; ++i) {
+        Vector2 measure = MeasureTextEx(fonteTexto, opts[i], 20, 1);
+        DrawRectangle((w - (int)measure.x - 20)/2, y - 6 + i*36, (int)measure.x + 20, 34, (Color){220,220,220,255});
+        DrawTextEx(fonteTexto, opts[i], (Vector2){(float)((w - (int)measure.x)/2), (float)(y + i*36)}, 20, 1, BLACK);
+    }
+
+    // Pequena instrução adicional
+    DrawTextEx(fontePequena, "Pressione ESC para fechar este menu", (Vector2){(float)(w/2 - 180), (float)(h/2 + 90)}, 14, 1, WHITE);
 }
