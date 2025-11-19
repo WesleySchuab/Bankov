@@ -4,7 +4,7 @@ Um jogo desenvolvido em C++ utilizando a biblioteca Raylib.
 
 ## 📋 Descrição
 
-[Adicione aqui uma breve descrição do seu jogo]
+[Este trabalho apresenta o desenvolvimento do “Bankov”, um simulador financeiro interativo desenvolvido em C++ utilizando a biblioteca gráfica Raylib. O sistema foi projetado como uma ferramenta educacional que combina elementos de gamificação com conceitos reais do mercado financeiro brasileiro, incluindo ações, fundos imobiliários (FIIs) e a dinâmica da taxa Selic. O jogo permite que dois jogadores interajam em um tabuleiro virtual, tomando decisões de investimento e aprendendo sobre diversificação de portfólio, análise de risco-retorno e comportamento dos mercados. A arquitetura do sistema foi desenvolvida seguindo princípios de programação orientada a objetos, implementando padrões de design que garantem extensibilidade e manutenção do código. Os resultados demonstram que a aplicação consegue simular de forma fidedigna as relações econômicas básicas, como a correlação inversa entre taxa de juros e preços de ativos, proporcionando uma experiência educacional envolvente e tecnicamente robusta.]
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -24,6 +24,8 @@ Bankov/
 │       └── fonts/
 └── README.md
 ```
+## Fotos
+![alt text](image.png)
 
 ## 🚀 Como Compilar
 
@@ -36,7 +38,7 @@ Bankov/
 
 1. Clone o repositório:
 ```bash
-git clone [URL_DO_SEU_REPOSITORIO]
+git clone [git@github.com:WesleySchuab/Bankov.git]
 cd Bankov
 ```
 
@@ -52,8 +54,6 @@ cd build
 Jogo desenvolvido em C++ que simula operações de compra/venda de propriedades e investimentos (Ações/Stocks). A interface gráfica usa a biblioteca Raylib e o projeto é construído com CMake.
 
 **Status:** Código fonte disponível. Instruções de compilação e execução abaixo.
-
-**Dica:** este README está em Português — ajuste conforme preferir.
 
 **Funcionalidades principais**
 - Comprar e vender propriedades
@@ -125,9 +125,12 @@ cmake --build . --config Release
 # ou, no caso de gerar com Visual Studio
 ./Release/Bankov.exe
 ```
+5) Para desenvolver esse jogo, configurei o visual studio com o terminal w64devkit que ja vem no raylib 
+# compilei com o comando 
+## g++ -I./src -o jogo.exe src/*.cpp -lraylib -lopengl32 -lgdi32 -lwinmm
 
 ## Controles e Jogabilidade
-- Use as teclas direcionais ou o mouse para navegar nos menus (dependendo da implementação)
+- Use a tecla de espaço para rolar o dado
 - Durante o jogo, siga as instruções na tela para comprar/vender ou terminar o turno
 
 Observação: os controles exatos dependem da implementação em `src/` — consulte `Game.cpp` e `main.cpp` para detalhes.
@@ -152,17 +155,10 @@ git push -u origin feat/nome-da-feature
 - Erro de `raylib` não encontrado: verifique se `raylib` está instalado e se `CMAKE_PREFIX_PATH` ou variáveis de sistema apontam para a instalação.
 - Erro no `cmake`: tente limpar `build` e rodar `cmake ..` de novo.
 
-## Licença
-Adicione aqui a licença do projeto (por exemplo: `MIT`, `GPL-3.0` etc.). Se ainda não escolheu, uma opção comum é a `MIT`.
 
 ## Autor
-Wesley Schuab — contato: [seu-email@exemplo.com]
+Wesley Schuab — contato: [wesleyschuabvieira@gmail.com]
 
 ---
 
-Se quiser, eu posso:
-- ajustar o `README.md` para incluir exemplos de build específicos para `vcpkg`/`msys2` no Windows;
-- criar um `CONTRIBUTING.md` com regras de contribuição;
-- rodar o build aqui para verificar se compila (preciso que confirme para executar comandos no terminal).
 
-Diga qual dessas opções prefere ou se quer que eu apenas finalize o `README.md` com outras informações específicas.
