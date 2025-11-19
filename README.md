@@ -12,6 +12,16 @@ Um jogo desenvolvido em C++ utilizando a biblioteca Raylib.
 - **Framework:** Raylib
 - **Build System:** CMake
 
+### Por que usamos o `CMakeLists.txt`?
+
+- **Portabilidade:** o CMake gera arquivos de build para diferentes plataformas e ferramentas (Makefiles, Visual Studio, Ninja), permitindo compilar o mesmo código em Windows, macOS e Linux sem alterar os fontes.
+- **Gerenciamento de dependências:** com `find_package()` e variáveis como `CMAKE_PREFIX_PATH` fica mais simples localizar bibliotecas como `raylib` e integrar pacotes (ex.: `vcpkg`).
+- **Build fora da árvore (out-of-source):** o CMake incentiva builds em diretórios `build/`, mantendo a árvore de fontes limpa e facilitando múltiplas configurações (Debug/Release) sem conflito.
+- **Integração com IDEs/CI:** gera projetos/ninja/soluções que IDEs entendem (Visual Studio, CLion) e é fácil integrar em pipelines de CI (GitHub Actions, Azure Pipelines).
+- **Controle de flags e configuração:** centraliza definições de compilador, opções e linkagem (ex.: padrão C++17, includes, libs), simplificando manutenção.
+
+Usar o `CMakeLists.txt` torna o projeto mais fácil de compilar por outros desenvolvedores e em ambientes automatizados, além de facilitar a adição de novas dependências no futuro.
+
 ## 📁 Estrutura do Projeto
 
 ```

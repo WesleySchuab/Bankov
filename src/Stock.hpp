@@ -20,7 +20,8 @@ public:
     /** Retorna o tipo de propriedade ("AÇÃO"). */
     std::string getType() const override { return "AÇÃO"; }
     /** Faixa de variação de preço típica para ações (em %). */
-    float getPriceVariationRange() const override { return 10.0f; } // ±10% para ações
+    // Quando a selic muda em 1 ponto, ações tendem a variar ~10%
+    float getPriceVariationRange() const override;
     
     /** Retorna o ticker da ação. */
     std::string getTicker() const { return ticker; }

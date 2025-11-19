@@ -23,7 +23,7 @@ public:
     /** Retorna o tipo de propriedade ("FII"). */
     std::string getType() const override { return "FII"; }
     /** Faixa de variação de preço típica para FIIs (em %). */
-    float getPriceVariationRange() const override { return 7.0f; } // ±7% para FIIs
+    float getPriceVariationRange() const override;
     
     /** Retorna o ticker do FII. */
     std::string getTicker() const { return ticker; }
