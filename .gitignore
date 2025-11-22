@@ -43,3 +43,4 @@ Thumbs.db
 *.tmp/installer/_raylib_temp/
 /installer/*.zip
 installer.zip
+/installer/_raylib_temp/
