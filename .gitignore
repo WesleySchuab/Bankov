@@ -40,4 +40,6 @@ Thumbs.db
 # Arquivos temporários
 *~
 *.swp
-*.tmp
+*.tmp/installer/_raylib_temp/
+/installer/*.zip
+installer.zip

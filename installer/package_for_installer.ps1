@@ -57,7 +57,8 @@ foreach ($p in $commonPaths) {
 
 # Se alguma DLL não foi encontrada, pedir ao usuário o diretório das DLLs
 $missing = $dllNames | Where-Object { -not $foundDlls.ContainsKey($_) }
-if ($missing.Count -gt 0) {
+# Garantir que $missing é tratado sempre como uma coleção (mesmo quando vazio ou único elemento)
+if ((@($missing)).Count -gt 0) {
     Write-Host "Algumas DLLs não foram encontradas em caminhos comuns: $($missing -join ', ')"
     $dllFolder = Read-Host "Informe a pasta onde as DLLs do MinGW/MSYS2 estão (ex: C:\msys64\mingw64\bin) ou deixe vazio para procurar manualmente"
     if (-not [string]::IsNullOrWhiteSpace($dllFolder)) {
@@ -70,7 +71,7 @@ if ($missing.Count -gt 0) {
 
 # Final check
 $stillMissing = $dllNames | Where-Object { -not $foundDlls.ContainsKey($_) }
-if ($stillMissing.Count -gt 0) {
+if ((@($stillMissing)).Count -gt 0) {
     Write-Warning "Ainda faltam DLLs: $($stillMissing -join ', '). Você pode prosseguir, mas o instalador pode não funcionar em máquinas alvo sem essas DLLs."
     $proceed = Read-Host "Deseja continuar mesmo assim? (S/n)"
     if ($proceed -eq 'n' -or $proceed -eq 'N') { throw "Cancelado pelo usuário" }
